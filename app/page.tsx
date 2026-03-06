@@ -1,101 +1,124 @@
-import Image from "next/image";
+"use client";
+
+import { useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import { motion } from "framer-motion";
+import UploadZone from "../components/UploadZone";
+import LoadingSteps from "../components/LoadingSteps";
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+  const handleFileSelect = useCallback(
+    async (file: File) => {
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        // Step 1: Upload and extract data with Gemini
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const generateRes = await fetch("/api/generate", {
+          method: "POST",
+          body: formData,
+        });
+
+        const generateJson = await generateRes.json();
+
+        if (!generateRes.ok) {
+          throw new Error(generateJson.error || "Failed to process resume.");
+        }
+
+        // Step 2: Generate HTML from extracted data
+        const templateRes = await fetch("/api/template", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ data: generateJson.data }),
+        });
+
+        const templateJson = await templateRes.json();
+
+        if (!templateRes.ok) {
+          throw new Error(templateJson.error || "Failed to generate portfolio.");
+        }
+
+        // Store in sessionStorage and navigate to preview
+        sessionStorage.setItem("portfolioHtml", templateJson.html);
+        sessionStorage.setItem(
+          "resumeData",
+          JSON.stringify(generateJson.data)
+        );
+        router.push("/preview");
+      } catch (err: unknown) {
+        const message =
+          err instanceof Error ? err.message : "Something went wrong.";
+        setError(message);
+        setIsLoading(false);
+      }
+    },
+    [router]
+  );
+
+  return (
+    <div className="min-h-screen bg-zinc-950 text-white">
+      {/* Subtle gradient background */}
+      <div className="fixed inset-0 -z-10">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-900/20 via-zinc-950 to-zinc-950" />
+      </div>
+
+      <div className="mx-auto flex min-h-screen max-w-2xl flex-col items-center justify-center px-6 py-20">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="w-full text-center"
         >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+          {/* Header */}
+          <div className="mb-12">
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-zinc-800 bg-zinc-900 px-4 py-1.5 text-xs font-medium text-zinc-400">
+              <span className="h-1.5 w-1.5 rounded-full bg-indigo-500" />
+              AI-Powered
+            </div>
+            <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
+              Resume to{" "}
+              <span className="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
+                Portfolio
+              </span>
+            </h1>
+            <p className="mt-4 text-lg text-zinc-400">
+              Upload your resume and get a stunning portfolio website in seconds.
+              <br />
+              Powered by AI. No sign-up required.
+            </p>
+          </div>
+
+          {/* Upload or Loading */}
+          {isLoading ? (
+            <LoadingSteps isLoading={isLoading} />
+          ) : (
+            <UploadZone onFileSelect={handleFileSelect} disabled={isLoading} />
+          )}
+
+          {/* Error display */}
+          {error && !isLoading && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mt-6 rounded-xl bg-red-500/10 border border-red-500/20 px-5 py-4 text-sm text-red-400"
+            >
+              {error}
+            </motion.div>
+          )}
+
+          {/* Footer note */}
+          <p className="mt-12 text-xs text-zinc-600">
+            Your resume is processed securely and never stored.
+          </p>
+        </motion.div>
+      </div>
     </div>
   );
 }
