@@ -4,6 +4,22 @@ import { extractWithGemini } from "../../../lib/extractWithGemini";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
+// Simple in-memory rate limiter: max 5 requests per IP per minute
+const rateMap = new Map<string, { count: number; resetAt: number }>();
+const RATE_LIMIT = 5;
+const RATE_WINDOW = 60_000; // 1 minute
+
+function isRateLimited(ip: string): boolean {
+  const now = Date.now();
+  const entry = rateMap.get(ip);
+  if (!entry || now > entry.resetAt) {
+    rateMap.set(ip, { count: 1, resetAt: now + RATE_WINDOW });
+    return false;
+  }
+  entry.count++;
+  return entry.count > RATE_LIMIT;
+}
+
 const ALLOWED_TYPES = [
   "application/pdf",
   "application/x-pdf",
@@ -12,6 +28,17 @@ const ALLOWED_TYPES = [
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate limiting
+    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
+      || request.headers.get("x-real-ip")
+      || "unknown";
+    if (isRateLimited(ip)) {
+      return NextResponse.json(
+        { error: "Too many requests. Please wait a minute before trying again." },
+        { status: 429 }
+      );
+    }
+
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
 

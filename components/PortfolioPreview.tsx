@@ -1,25 +1,23 @@
 "use client";
 
-import { useRef, useEffect } from "react";
 import { motion } from "framer-motion";
+
+export type Viewport = "desktop" | "tablet" | "mobile";
+
+const VIEWPORT_WIDTHS: Record<Viewport, string> = {
+  desktop: "100%",
+  tablet: "768px",
+  mobile: "375px",
+};
 
 interface PortfolioPreviewProps {
   html: string;
+  viewport?: Viewport;
 }
 
-export default function PortfolioPreview({ html }: PortfolioPreviewProps) {
-  const iframeRef = useRef<HTMLIFrameElement>(null);
-
-  useEffect(() => {
-    if (iframeRef.current && html) {
-      const doc = iframeRef.current.contentDocument;
-      if (doc) {
-        doc.open();
-        doc.write(html);
-        doc.close();
-      }
-    }
-  }, [html]);
+export default function PortfolioPreview({ html, viewport = "desktop" }: PortfolioPreviewProps) {
+  const width = VIEWPORT_WIDTHS[viewport];
+  const isResized = viewport !== "desktop";
 
   return (
     <motion.div
@@ -39,15 +37,25 @@ export default function PortfolioPreview({ html }: PortfolioPreviewProps) {
           <div className="ml-3 flex-1 rounded-md bg-zinc-900/60 px-3 py-1 text-xs text-zinc-500">
             your-portfolio.html
           </div>
+          {isResized && (
+            <span className="text-[10px] text-zinc-600">{width}</span>
+          )}
         </div>
 
-        <iframe
-          ref={iframeRef}
-          className="w-full bg-white"
-          style={{ height: "calc(100vh - 200px)", minHeight: "600px" }}
-          title="Portfolio Preview"
-          sandbox="allow-scripts allow-same-origin"
-        />
+        <div className={isResized ? "flex justify-center bg-zinc-950/50 py-4" : ""}>
+          <iframe
+            srcDoc={html}
+            className="bg-white transition-all duration-300"
+            style={{
+              width,
+              maxWidth: "100%",
+              height: "calc(100vh - 200px)",
+              minHeight: "600px",
+            }}
+            title="Portfolio Preview"
+            sandbox="allow-scripts allow-same-origin"
+          />
+        </div>
       </div>
     </motion.div>
   );

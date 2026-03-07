@@ -38,16 +38,23 @@ RESUME TEXT:
 
 const client = new Anthropic();
 
+const MAX_RESUME_CHARS = 30000; // ~7500 tokens, plenty for any resume
+
 export async function extractWithGemini(
   resumeText: string
 ): Promise<ResumeData> {
+  // Truncate overly long text to prevent excessive token costs
+  const truncated = resumeText.length > MAX_RESUME_CHARS
+    ? resumeText.slice(0, MAX_RESUME_CHARS) + "\n\n[Resume text truncated]"
+    : resumeText;
+
   let responseText: string;
   try {
     const message = await client.messages.create({
       model: "claude-haiku-4-5",
       max_tokens: 4096,
       messages: [
-        { role: "user", content: EXTRACTION_PROMPT + resumeText },
+        { role: "user", content: EXTRACTION_PROMPT + truncated },
       ],
     });
 

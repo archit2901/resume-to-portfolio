@@ -4,12 +4,38 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import PortfolioPreview from "../../components/PortfolioPreview";
+import type { Viewport } from "../../components/PortfolioPreview";
 import ActionBar from "../../components/ActionBar";
+
+const VIEWPORTS: { key: Viewport; label: string; icon: JSX.Element }[] = [
+  {
+    key: "desktop",
+    label: "Desktop",
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+    ),
+  },
+  {
+    key: "tablet",
+    label: "Tablet",
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="12" y1="18" x2="12" y2="18"/></svg>
+    ),
+  },
+  {
+    key: "mobile",
+    label: "Mobile",
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12" y2="18"/></svg>
+    ),
+  },
+];
 
 export default function PreviewPage() {
   const router = useRouter();
   const [html, setHtml] = useState<string | null>(null);
   const [name, setName] = useState("portfolio");
+  const [viewport, setViewport] = useState<Viewport>("desktop");
 
   useEffect(() => {
     const storedHtml = sessionStorage.getItem("portfolioHtml");
@@ -26,7 +52,13 @@ export default function PreviewPage() {
       try {
         const data = JSON.parse(storedData);
         if (data.name) {
-          setName(data.name.toLowerCase().replace(/\s+/g, "-"));
+          setName(
+            data.name
+              .toLowerCase()
+              .replace(/[^a-z0-9\s-]/g, "")
+              .replace(/\s+/g, "-")
+              .slice(0, 50)
+          );
         }
       } catch {
         // ignore parse error
@@ -79,9 +111,28 @@ export default function PreviewPage() {
                 Ready
               </span>
             </div>
+
+            {/* Viewport toggles */}
+            <div className="flex items-center gap-1 rounded-lg border border-zinc-800 bg-zinc-900 p-1">
+              {VIEWPORTS.map((v) => (
+                <button
+                  key={v.key}
+                  onClick={() => setViewport(v.key)}
+                  title={v.label}
+                  className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors ${
+                    viewport === v.key
+                      ? "bg-zinc-700 text-white"
+                      : "text-zinc-500 hover:text-zinc-300"
+                  }`}
+                >
+                  {v.icon}
+                  <span className="hidden sm:inline">{v.label}</span>
+                </button>
+              ))}
+            </div>
           </div>
 
-          <PortfolioPreview html={html} />
+          <PortfolioPreview html={html} viewport={viewport} />
         </motion.div>
       </AnimatePresence>
 
