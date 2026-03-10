@@ -79,6 +79,13 @@ export default function PreviewPage() {
     URL.revokeObjectURL(url);
   }, [html, name]);
 
+  const handleOpenNewTab = useCallback(() => {
+    if (!html) return;
+    const blob = new Blob([html], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    window.open(url, "_blank");
+  }, [html]);
+
   const handleNewUpload = useCallback(() => {
     sessionStorage.removeItem("portfolioHtml");
     sessionStorage.removeItem("resumeData");
@@ -136,7 +143,7 @@ export default function PreviewPage() {
         </motion.div>
       </AnimatePresence>
 
-      <ActionBar onDownload={handleDownload} onNewUpload={handleNewUpload} />
+      <ActionBar onDownload={handleDownload} onNewUpload={handleNewUpload} onOpenNewTab={handleOpenNewTab} />
     </div>
   );
 }

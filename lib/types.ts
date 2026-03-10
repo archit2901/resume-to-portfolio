@@ -25,6 +25,16 @@ export interface Project {
   link: string;
 }
 
+export interface CustomSectionItem {
+  text: string;
+  description?: string;
+}
+
+export interface CustomSection {
+  title: string;
+  items: CustomSectionItem[];
+}
+
 export interface ResumeData {
   name: string;
   title: string;
@@ -39,7 +49,5 @@ export interface ResumeData {
   experience: Experience[];
   education: Education[];
   projects: Project[];
-  certifications: string[];
-  languages: string[];
-  awards: string[];
+  customSections: CustomSection[];
 }

@@ -28,10 +28,16 @@ Return this exact JSON structure:
   "experience": [{ "company": "", "role": "", "duration": "", "location": "", "bullets": [""] }],
   "education": [{ "institution": "", "degree": "", "duration": "", "gpa": "" }],
   "projects": [{ "name": "", "description": "", "techStack": [""], "link": "" }],
-  "certifications": [""],
-  "languages": [""],
-  "awards": [""]
+  "customSections": [{ "title": "Section Name", "items": [{ "text": "Item text", "description": "Optional detail" }] }]
 }
+
+CUSTOM SECTIONS INSTRUCTIONS:
+- Use customSections to capture ALL additional resume sections beyond experience, education, skills, and projects.
+- This includes (but is not limited to): Certifications, Awards, Languages, Publications, Research, Volunteer Work, Leadership, Professional Memberships, Courses, Patents, Interests, Honors, etc.
+- Each customSection should have a "title" matching the section heading from the resume (e.g. "Certifications", "Languages", "Volunteer Work").
+- Each item has a "text" field (the main content) and an optional "description" field (for extra detail, date, issuer, etc.).
+- Only create a customSection if that section actually appears in the resume. Do not invent sections.
+- If no additional sections exist, set customSections to an empty array [].
 
 RESUME TEXT:
 `;
@@ -52,7 +58,7 @@ export async function extractWithGemini(
   try {
     const message = await client.messages.create({
       model: "claude-haiku-4-5",
-      max_tokens: 4096,
+      max_tokens: 6144,
       messages: [
         { role: "user", content: EXTRACTION_PROMPT + truncated },
       ],

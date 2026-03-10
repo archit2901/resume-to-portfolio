@@ -26,8 +26,16 @@ function hasContent(arr: unknown[]): boolean {
   return true;
 }
 
+function slugify(text: string): string {
+  return text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+}
+
 export function generateModernPortfolio(data: ResumeData): string {
   const e = escapeHtml;
+
+  const customSections = Array.isArray(data.customSections)
+    ? data.customSections.filter((s) => s.title && hasContent(s.items))
+    : [];
 
   const navItems: { id: string; label: string }[] = [];
   navItems.push({ id: "hero", label: "Home" });
@@ -39,12 +47,9 @@ export function generateModernPortfolio(data: ResumeData): string {
     navItems.push({ id: "skills", label: "Skills" });
   if (hasContent(data.projects))
     navItems.push({ id: "projects", label: "Projects" });
-  if (
-    hasContent(data.certifications) ||
-    hasContent(data.awards) ||
-    hasContent(data.languages)
-  )
-    navItems.push({ id: "more", label: "More" });
+  for (const section of customSections) {
+    navItems.push({ id: slugify(section.title), label: section.title });
+  }
   navItems.push({ id: "contact", label: "Contact" });
 
   const navLinksHtml = navItems
@@ -230,24 +235,29 @@ export function generateModernPortfolio(data: ResumeData): string {
     </section>`
     : "";
 
-  // More section
-  const hasCerts = hasContent(data.certifications);
-  const hasAwards = hasContent(data.awards);
-  const hasLangs = hasContent(data.languages);
-  const moreHtml =
-    hasCerts || hasAwards || hasLangs
-      ? `
-    <section id="more" class="section">
+  // Custom sections (certifications, awards, languages, and any other resume sections)
+  const customSectionsHtml = customSections
+    .map(
+      (section) => `
+    <section id="${slugify(section.title)}" class="section">
       <div class="container">
-        <div class="section-header anim"><span class="section-num">0${sectionNum++}</span><h2 class="section-title">Additional</h2></div>
+        <div class="section-header anim"><span class="section-num">0${sectionNum++}</span><h2 class="section-title">${e(section.title)}</h2></div>
         <div class="more-grid">
-          ${hasCerts ? `<div class="more-card anim" style="--d:0"><h3 class="more-card-title">Certifications</h3><ul class="more-list">${data.certifications.filter((c) => c).map((c) => `<li>${e(c)}</li>`).join("")}</ul></div>` : ""}
-          ${hasAwards ? `<div class="more-card anim" style="--d:0.08"><h3 class="more-card-title">Awards</h3><ul class="more-list">${data.awards.filter((a) => a).map((a) => `<li>${e(a)}</li>`).join("")}</ul></div>` : ""}
-          ${hasLangs ? `<div class="more-card anim" style="--d:0.16"><h3 class="more-card-title">Languages</h3><div class="skill-tags">${data.languages.filter((l) => l).map((l) => `<span class="skill-tag">${e(l)}</span>`).join("")}</div></div>` : ""}
+          ${section.items
+            .filter((item) => item.text)
+            .map(
+              (item, i) => `
+          <div class="more-card anim" style="--d:${i * 0.08}">
+            <div class="more-item-text">${e(item.text)}</div>
+            ${item.description ? `<div class="more-item-desc">${e(item.description)}</div>` : ""}
+          </div>`
+            )
+            .join("")}
         </div>
       </div>
     </section>`
-      : "";
+    )
+    .join("");
 
   // Contact section
   const contactHtml = `
@@ -489,6 +499,8 @@ export function generateModernPortfolio(data: ResumeData): string {
     .more-list { list-style: none; padding: 0; }
     .more-list li { padding: 8px 0; font-size: .88rem; color: var(--text-s); border-bottom: 1px solid var(--border); }
     .more-list li:last-child { border-bottom: none; }
+    .more-item-text { font-size: .92rem; font-weight: 500; color: var(--text); line-height: 1.5; }
+    .more-item-desc { font-size: .82rem; color: var(--text-t); margin-top: 4px; line-height: 1.5; }
 
     /* ── Contact ── */
     .contact-section { padding-bottom: 100px; }
@@ -585,7 +597,7 @@ export function generateModernPortfolio(data: ResumeData): string {
     ${educationHtml}
     ${skillsHtml}
     ${projectsHtml}
-    ${moreHtml}
+    ${customSectionsHtml}
     ${contactHtml}
   </main>
 

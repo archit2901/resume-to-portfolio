@@ -11,6 +11,7 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
+  const [reviewBeforeGenerate, setReviewBeforeGenerate] = useState(true);
 
   const handleFileSelect = useCallback(
     async (file: File) => {
@@ -33,24 +34,29 @@ export default function Home() {
           throw new Error(generateJson.error || "Failed to process resume.");
         }
 
-        const templateRes = await fetch("/api/template", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ data: generateJson.data }),
-        });
-
-        const templateJson = await templateRes.json();
-
-        if (!templateRes.ok) {
-          throw new Error(templateJson.error || "Failed to generate portfolio.");
-        }
-
-        sessionStorage.setItem("portfolioHtml", templateJson.html);
         sessionStorage.setItem(
           "resumeData",
           JSON.stringify(generateJson.data)
         );
-        router.push("/preview");
+
+        if (reviewBeforeGenerate) {
+          router.push("/edit");
+        } else {
+          const templateRes = await fetch("/api/template", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ data: generateJson.data }),
+          });
+
+          const templateJson = await templateRes.json();
+
+          if (!templateRes.ok) {
+            throw new Error(templateJson.error || "Failed to generate portfolio.");
+          }
+
+          sessionStorage.setItem("portfolioHtml", templateJson.html);
+          router.push("/preview");
+        }
       } catch (err: unknown) {
         const message =
           err instanceof Error ? err.message : "Something went wrong.";
@@ -59,7 +65,7 @@ export default function Home() {
         setFileName(null);
       }
     },
-    [router]
+    [router, reviewBeforeGenerate]
   );
 
   const features = [
@@ -127,10 +133,39 @@ export default function Home() {
                   {fileName}
                 </motion.div>
               )}
-              <LoadingSteps isLoading={isLoading} />
+              <LoadingSteps
+                isLoading={isLoading}
+                lastStepLabel={
+                  reviewBeforeGenerate
+                    ? undefined
+                    : "Building your portfolio..."
+                }
+              />
             </div>
           ) : (
-            <UploadZone onFileSelect={handleFileSelect} disabled={isLoading} />
+            <div>
+              <UploadZone onFileSelect={handleFileSelect} disabled={isLoading} />
+              <div className="mt-5 flex items-center justify-center gap-3">
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={reviewBeforeGenerate}
+                  onClick={() => setReviewBeforeGenerate((v) => !v)}
+                  className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full transition-colors duration-200 ${
+                    reviewBeforeGenerate ? "bg-indigo-500" : "bg-zinc-700"
+                  }`}
+                >
+                  <span
+                    className={`pointer-events-none inline-block h-4 w-4 translate-y-0.5 rounded-full bg-white shadow transition-transform duration-200 ${
+                      reviewBeforeGenerate ? "translate-x-[18px]" : "translate-x-0.5"
+                    }`}
+                  />
+                </button>
+                <span className="text-sm text-zinc-400">
+                  Review &amp; edit before generating
+                </span>
+              </div>
+            </div>
           )}
 
           {error && !isLoading && (

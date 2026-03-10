@@ -7,15 +7,20 @@ const STEPS = [
   { label: "Uploading your resume...", duration: 1500 },
   { label: "Reading the content...", duration: 2000 },
   { label: "Extracting your details with AI...", duration: 4000 },
-  { label: "Building your portfolio...", duration: 2000 },
+  { label: "Preparing data for review...", duration: 2000 },
 ];
 
 interface LoadingStepsProps {
   isLoading: boolean;
+  lastStepLabel?: string;
 }
 
-export default function LoadingSteps({ isLoading }: LoadingStepsProps) {
+export default function LoadingSteps({ isLoading, lastStepLabel }: LoadingStepsProps) {
   const [currentStep, setCurrentStep] = useState(0);
+
+  const steps = lastStepLabel
+    ? STEPS.map((s, i) => (i === STEPS.length - 1 ? { ...s, label: lastStepLabel } : s))
+    : STEPS;
 
   useEffect(() => {
     if (!isLoading) {
@@ -61,13 +66,13 @@ export default function LoadingSteps({ isLoading }: LoadingStepsProps) {
           transition={{ duration: 0.3 }}
           className="text-base font-medium text-zinc-300"
         >
-          {STEPS[currentStep].label}
+          {steps[currentStep].label}
         </motion.p>
       </AnimatePresence>
 
       {/* Step indicators */}
       <div className="flex gap-2">
-        {STEPS.map((_, i) => (
+        {steps.map((_, i) => (
           <div
             key={i}
             className={`h-1.5 w-8 rounded-full transition-all duration-500 ${
